@@ -1,5 +1,5 @@
-// Define your backend URL dynamically or use your Render URL directly
-const API_BASE_URL = window.location.hostname === 'localhost' 
+// Define your backend URL dynamically for local development or Render production
+const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'http://127.0.0.1:8000' 
     : 'https://demandsense-exob.onrender.com';
 
@@ -33,4 +33,57 @@ async function uploadCSV() {
         alert("Error: " + error.message);
         console.error(error);
     }
+}
+
+function renderChart(forecastData) {
+    const labels = forecastData.map(item => item.date);
+    const yhat = forecastData.map(item => item.predicted_units);
+    const yhatLower = forecastData.map(item => item.lower_bound);
+    const yhatUpper = forecastData.map(item => item.upper_bound);
+
+    const ctx = document.getElementById('forecastChart').getContext('2d');
+
+    if (myChart) {
+        myChart.destroy();
+    }
+
+    myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Predicted Demand',
+                    data: yhat,
+                    borderColor: 'rgb(37, 99, 235)',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderWidth: 2,
+                    fill: false
+                },
+                {
+                    label: 'Upper Bound',
+                    data: yhatUpper,
+                    borderColor: 'rgba(156, 163, 175, 0.5)',
+                    borderDash: [5, 5],
+                    fill: false
+                },
+                {
+                    label: 'Lower Bound',
+                    data: yhatLower,
+                    borderColor: 'rgba(156, 163, 175, 0.5)',
+                    borderDash: [5, 5],
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
 }
