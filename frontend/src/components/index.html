@@ -35,8 +35,12 @@
         </div>
     </div>
 
-    <!-- Integrated Script with Debugging -->
+    <!-- Integrated Script with Debugging & Dynamic API URL -->
     <script>
+        const API_BASE_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://127.0.0.1:8000'
+            : 'https://demandsense-exob.onrender.com';
+
         let myChart = null;
 
         async function uploadCSV() {
@@ -51,8 +55,8 @@
             formData.append("file", fileInput.files[0]);
 
             try {
-                console.log("Sending request to backend...");
-                const response = await fetch("http://127.0.0.1:8000/forecast/upload-csv/?periods=30", {
+                console.log("Sending request to backend at:", API_BASE_URL);
+                const response = await fetch(`${API_BASE_URL}/forecast/upload-csv/?periods=30`, {
                     method: "POST",
                     body: formData
                 });
