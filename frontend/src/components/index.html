@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DemandSense - Inventory & Sales Forecasting</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 font-sans leading-normal tracking-normal">
+
+    <div class="container mx-auto p-8 max-w-5xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-bold text-blue-600">DemandSense</h1>
+            <p class="text-gray-600">Smart Inventory & Sales Forecasting Platform</p>
+        </header>
+
+        <!-- Upload Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Upload Sales CSV for Forecasting</h2>
+            <div class="flex items-center space-x-4">
+                <input type="file" id="csvFile" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+                <button onclick="uploadCSV()" class="bg-blue-600 text-white px-6 py-2 rounded-md font-medium hover:bg-blue-700 transition cursor-pointer">Generate Forecast</button>
+            </div>
+        </div>
+
+        <!-- Chart Section -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">Demand Forecast Chart</h2>
+            <div class="relative h-96">
+                <canvas id="forecastChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Integrated Script with Debugging -->
+    <script>
+        let myChart = null;
+
+        async function uploadCSV() {
+            console.log("Button clicked, starting upload...");
+            const fileInput = document.getElementById('csvFile');
+            if (!fileInput || fileInput.files.length === 0) {
+                alert("Please select a CSV file first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", fileInput.files[0]);
+
+            try {
+                console.log("Sending request to backend...");
+                const response = await fetch("http://127.0.0.1:8000/forecast/upload-csv/?periods=30", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.detail || "Failed to generate forecast from backend.");
+                }
+
+                const result = await response.json();
+                console.log("Received data from backend:", result);
+                renderChart(result.forecast);
+
+            } catch (error) {
+                alert("Error: " + error.message);
+                console.error("Fetch error:", error);
+            }
+        }
+
+        function renderChart(forecastData) {
+            console.log("Rendering chart with data:", forecastData);
+            const labels = forecastData.map(item => item.date);
+            const yhat = forecastData.map(item => item.predicted_units);
+            const yhatLower = forecastData.map(item => item.lower_bound);
+            const yhatUpper = forecastData.map(item => item.upper_bound);
+
+            const ctx = document.getElementById('forecastChart').getContext('2d');
+
+            if (myChart) {
+                myChart.destroy();
+            }
+
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Predicted Demand',
+                            data: yhat,
+                            borderColor: 'rgb(37, 99, 235)',
+                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                            borderWidth: 2,
+                            fill: false
+                        },
+                        {
+                            label: 'Upper Bound',
+                            data: yhatUpper,
+                            borderColor: 'rgba(156, 163, 175, 0.5)',
+                            borderDash: [5, 5],
+                            fill: false
+                        },
+                        {
+                            label: 'Lower Bound',
+                            data: yhatLower,
+                            borderColor: 'rgba(156, 163, 175, 0.5)',
+                            borderDash: [5, 5],
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            console.log("Chart rendered successfully!");
+        }
+    </script>
+</body>
+</html>
